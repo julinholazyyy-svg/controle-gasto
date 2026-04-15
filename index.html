@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Controle de Gastos</title>
+</head>
+<body>
+
+  <h1>💸 Controle de Gastos</h1>
+
+  <input type="text" id="nome" placeholder="Nome do gasto">
+  <input type="number" id="valor" placeholder="Valor">
+  <button onclick="adicionar()">Adicionar</button>
+
+  <h2>Lista:</h2>
+  <ul id="lista"></ul>
+
+  <h3 id="total">Total: €0</h3>
+
+  <script>
+    let total = 0;
+
+    function adicionar() {
+      let nome = document.getElementById("nome").value;
+      let valor = Number(document.getElementById("valor").value);
+
+      if (nome === "" || valor === 0) {
+        alert("Preenche tudo!");
+        return;
+      }
+
+      let lista = document.getElementById("lista");
+
+      let item = document.createElement("li");
+      item.textContent = nome + " - €" + valor;
+
+      lista.appendChild(item);
+
+      total += valor;
+      document.getElementById("total").textContent = "Total: €" + total;
+    }
+  </script>
+
+</body>
+</html>
