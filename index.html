@@ -6,34 +6,44 @@
   <style>
     body {
       font-family: Arial;
-      background: linear-gradient(to right, #ff758c, #ff7eb3);
+      background: linear-gradient(to right, #4facfe, #00f2fe);
       margin: 0;
+      transition: 0.3s;
+    }
+
+    .dark {
+      background: #121212;
+      color: white;
     }
 
     .container {
       background: white;
-      width: 320px;
-      margin: 60px auto;
+      width: 350px;
+      margin: 40px auto;
       padding: 20px;
       border-radius: 20px;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .dark .container {
+      background: #1e1e1e;
     }
 
     h1 {
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    input {
+    input, select {
       width: 90%;
       padding: 10px;
       margin: 5px;
       border-radius: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #ccc;
     }
 
     button {
-      background: #ff4d6d;
+      background: #0077ff;
       color: white;
       border: none;
       padding: 10px;
@@ -45,7 +55,13 @@
     }
 
     button:hover {
-      background: #e63950;
+      background: #005fcc;
+    }
+
+    .toggle {
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 14px;
     }
 
     ul {
@@ -55,13 +71,23 @@
     }
 
     li {
-      background: #f5f5f5;
+      background: #f1f1f1;
       margin: 5px;
       padding: 10px;
       border-radius: 10px;
       display: flex;
+      flex-direction: column;
+      align-items: start;
+    }
+
+    .dark li {
+      background: #2a2a2a;
+    }
+
+    .top {
+      display: flex;
       justify-content: space-between;
-      align-items: center;
+      width: 100%;
     }
 
     .delete {
@@ -73,10 +99,20 @@
       cursor: pointer;
     }
 
-    #total {
+    .categoria {
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      color: white;
+    }
+
+    .comida { background: orange; }
+    .transporte { background: purple; }
+    .outros { background: gray; }
+
+    .resumo {
       margin-top: 15px;
       font-weight: bold;
-      font-size: 18px;
     }
   </style>
 </head>
@@ -84,15 +120,24 @@
 <body>
 
   <div class="container">
+    <div class="toggle" onclick="modoEscuro()">🌙 Alternar modo</div>
+
     <h1>💸 Gastos</h1>
 
     <input type="text" id="nome" placeholder="Nome do gasto">
     <input type="number" id="valor" placeholder="Valor">
+
+    <select id="categoria">
+      <option value="comida">Comida</option>
+      <option value="transporte">Transporte</option>
+      <option value="outros">Outros</option>
+    </select>
+
     <button onclick="adicionar()">Adicionar</button>
 
     <ul id="lista"></ul>
 
-    <h3 id="total">Total: €0</h3>
+    <div class="resumo" id="resumo"></div>
   </div>
 
   <script>
@@ -107,31 +152,42 @@
       lista.innerHTML = "";
       let total = 0;
 
-      gastos.forEach((gasto, index) => {
+      gastos.forEach((g, index) => {
         let item = document.createElement("li");
 
         item.innerHTML = `
-          ${gasto.nome} - €${gasto.valor}
-          <button class="delete" onclick="remover(${index})">X</button>
+          <div class="top">
+            <strong>${g.nome} - €${g.valor}</strong>
+            <button class="delete" onclick="remover(${index})">X</button>
+          </div>
+          <div>
+            <span class="categoria ${g.categoria}">${g.categoria}</span>
+            <small>📅 ${g.data}</small>
+          </div>
         `;
 
         lista.appendChild(item);
-        total += gasto.valor;
+        total += g.valor;
       });
 
-      document.getElementById("total").textContent = "Total: €" + total;
+      document.getElementById("resumo").textContent =
+        "Total: €" + total + " | Itens: " + gastos.length;
     }
 
     function adicionar() {
       let nome = document.getElementById("nome").value;
       let valor = Number(document.getElementById("valor").value);
+      let categoria = document.getElementById("categoria").value;
 
       if (nome === "" || valor === 0) {
         alert("Preenche tudo!");
         return;
       }
 
-      gastos.push({ nome, valor });
+      let data = new Date().toLocaleDateString();
+
+      gastos.push({ nome, valor, categoria, data });
+
       salvar();
       atualizarTela();
 
@@ -143,6 +199,10 @@
       gastos.splice(index, 1);
       salvar();
       atualizarTela();
+    }
+
+    function modoEscuro() {
+      document.body.classList.toggle("dark");
     }
 
     atualizarTela();
