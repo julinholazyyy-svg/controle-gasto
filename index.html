@@ -1,212 +1,185 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Controle de Gastos</title>
+  <title>Controle Profissional</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
       font-family: Arial;
-      background: linear-gradient(to right, #4facfe, #00f2fe);
       margin: 0;
-      transition: 0.3s;
-    }
-
-    .dark {
-      background: #121212;
+      background: linear-gradient(to right, #141e30, #243b55);
       color: white;
     }
 
     .container {
-      background: white;
-      width: 350px;
-      margin: 40px auto;
+      max-width: 400px;
+      margin: 20px auto;
+      background: #1e1e2f;
       padding: 20px;
       border-radius: 20px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-
-    .dark .container {
-      background: #1e1e1e;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
     h1 {
-      margin-bottom: 10px;
+      text-align: center;
     }
 
     input, select {
-      width: 90%;
+      width: 100%;
       padding: 10px;
-      margin: 5px;
+      margin: 5px 0;
       border-radius: 10px;
-      border: 1px solid #ccc;
+      border: none;
     }
 
     button {
-      background: #0077ff;
-      color: white;
-      border: none;
+      width: 100%;
       padding: 10px;
-      width: 95%;
+      border: none;
       border-radius: 10px;
-      cursor: pointer;
-      margin-top: 10px;
+      background: #00c6ff;
+      color: black;
       font-weight: bold;
-    }
-
-    button:hover {
-      background: #005fcc;
-    }
-
-    .toggle {
-      margin-bottom: 10px;
+      margin-top: 10px;
       cursor: pointer;
-      font-size: 14px;
     }
 
     ul {
       list-style: none;
       padding: 0;
-      margin-top: 15px;
     }
 
     li {
-      background: #f1f1f1;
-      margin: 5px;
+      background: #2c2c3e;
+      margin: 5px 0;
       padding: 10px;
       border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: start;
     }
 
-    .dark li {
-      background: #2a2a2a;
+    canvas {
+      margin-top: 20px;
     }
 
-    .top {
+    .top-bar {
       display: flex;
       justify-content: space-between;
-      width: 100%;
-    }
-
-    .delete {
-      background: red;
-      border: none;
-      color: white;
-      border-radius: 8px;
-      padding: 5px 8px;
-      cursor: pointer;
-    }
-
-    .categoria {
-      font-size: 12px;
-      padding: 3px 6px;
-      border-radius: 6px;
-      color: white;
-    }
-
-    .comida { background: orange; }
-    .transporte { background: purple; }
-    .outros { background: gray; }
-
-    .resumo {
-      margin-top: 15px;
-      font-weight: bold;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
-    <div class="toggle" onclick="modoEscuro()">🌙 Alternar modo</div>
-
-    <h1>💸 Gastos</h1>
-
-    <input type="text" id="nome" placeholder="Nome do gasto">
-    <input type="number" id="valor" placeholder="Valor">
-
-    <select id="categoria">
-      <option value="comida">Comida</option>
-      <option value="transporte">Transporte</option>
-      <option value="outros">Outros</option>
-    </select>
-
-    <button onclick="adicionar()">Adicionar</button>
-
-    <ul id="lista"></ul>
-
-    <div class="resumo" id="resumo"></div>
+<div class="container">
+  <div class="top-bar">
+    <span onclick="toggleDark()">🌙 Modo</span>
+    <span onclick="limpar()">🧹 Limpar</span>
   </div>
 
-  <script>
-    let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
+  <h1>💸 Gastos</h1>
 
-    function salvar() {
-      localStorage.setItem("gastos", JSON.stringify(gastos));
+  <input id="nome" placeholder="Nome">
+  <input id="valor" type="number" placeholder="Valor">
+
+  <select id="categoria">
+    <option value="Comida">Comida</option>
+    <option value="Transporte">Transporte</option>
+    <option value="Lazer">Lazer</option>
+  </select>
+
+  <button onclick="add()">Adicionar</button>
+
+  <select id="filtro" onchange="render()">
+    <option value="todos">Todos</option>
+    <option value="Comida">Comida</option>
+    <option value="Transporte">Transporte</option>
+    <option value="Lazer">Lazer</option>
+  </select>
+
+  <ul id="lista"></ul>
+
+  <h3 id="total"></h3>
+
+  <canvas id="grafico"></canvas>
+</div>
+
+<script>
+let dados = JSON.parse(localStorage.getItem("dados")) || [];
+
+function salvar() {
+  localStorage.setItem("dados", JSON.stringify(dados));
+}
+
+function add() {
+  let nome = document.getElementById("nome").value;
+  let valor = Number(document.getElementById("valor").value);
+  let categoria = document.getElementById("categoria").value;
+
+  if (!nome || !valor) return alert("Preenche tudo");
+
+  dados.push({nome, valor, categoria});
+  salvar();
+  render();
+}
+
+function limpar() {
+  dados = [];
+  salvar();
+  render();
+}
+
+function render() {
+  let lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  let filtro = document.getElementById("filtro").value;
+
+  let total = 0;
+  let categorias = {Comida:0, Transporte:0, Lazer:0};
+
+  dados.forEach((g,i) => {
+    if (filtro !== "todos" && g.categoria !== filtro) return;
+
+    let li = document.createElement("li");
+    li.textContent = g.nome + " €" + g.valor + " ("+g.categoria+")";
+    lista.appendChild(li);
+
+    total += g.valor;
+    categorias[g.categoria] += g.valor;
+  });
+
+  document.getElementById("total").textContent = "Total: €" + total;
+
+  gerarGrafico(categorias);
+}
+
+let chart;
+
+function gerarGrafico(cat) {
+  let ctx = document.getElementById("grafico");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(cat),
+      datasets: [{
+        data: Object.values(cat)
+      }]
     }
+  });
+}
 
-    function atualizarTela() {
-      let lista = document.getElementById("lista");
-      lista.innerHTML = "";
-      let total = 0;
+function toggleDark() {
+  document.body.style.background = document.body.style.background === "black"
+    ? "linear-gradient(to right, #141e30, #243b55)"
+    : "black";
+}
 
-      gastos.forEach((g, index) => {
-        let item = document.createElement("li");
-
-        item.innerHTML = `
-          <div class="top">
-            <strong>${g.nome} - €${g.valor}</strong>
-            <button class="delete" onclick="remover(${index})">X</button>
-          </div>
-          <div>
-            <span class="categoria ${g.categoria}">${g.categoria}</span>
-            <small>📅 ${g.data}</small>
-          </div>
-        `;
-
-        lista.appendChild(item);
-        total += g.valor;
-      });
-
-      document.getElementById("resumo").textContent =
-        "Total: €" + total + " | Itens: " + gastos.length;
-    }
-
-    function adicionar() {
-      let nome = document.getElementById("nome").value;
-      let valor = Number(document.getElementById("valor").value);
-      let categoria = document.getElementById("categoria").value;
-
-      if (nome === "" || valor === 0) {
-        alert("Preenche tudo!");
-        return;
-      }
-
-      let data = new Date().toLocaleDateString();
-
-      gastos.push({ nome, valor, categoria, data });
-
-      salvar();
-      atualizarTela();
-
-      document.getElementById("nome").value = "";
-      document.getElementById("valor").value = "";
-    }
-
-    function remover(index) {
-      gastos.splice(index, 1);
-      salvar();
-      atualizarTela();
-    }
-
-    function modoEscuro() {
-      document.body.classList.toggle("dark");
-    }
-
-    atualizarTela();
-  </script>
+render();
+</script>
 
 </body>
 </html>
