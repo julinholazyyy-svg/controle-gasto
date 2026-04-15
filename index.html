@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Controle Profissional</title>
+  <title>Controle Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
-      font-family: Arial;
       margin: 0;
-      background: linear-gradient(to right, #141e30, #243b55);
+      font-family: Arial;
+      background: linear-gradient(135deg, #1d2b64, #f8cdda);
       color: white;
     }
 
     .container {
-      max-width: 400px;
+      max-width: 380px;
       margin: 20px auto;
-      background: #1e1e2f;
+      background: #111;
       padding: 20px;
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.5);
     }
 
     h1 {
       text-align: center;
+      margin-bottom: 10px;
     }
 
     input, select {
@@ -36,13 +37,23 @@
     button {
       width: 100%;
       padding: 10px;
-      border: none;
       border-radius: 10px;
-      background: #00c6ff;
-      color: black;
+      border: none;
+      background: #00f2fe;
       font-weight: bold;
-      margin-top: 10px;
       cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 10px;
     }
 
     ul {
@@ -51,20 +62,43 @@
     }
 
     li {
-      background: #2c2c3e;
+      background: #222;
       margin: 5px 0;
       padding: 10px;
       border-radius: 10px;
+      animation: aparecer 0.3s ease;
     }
 
-    canvas {
-      margin-top: 20px;
+    @keyframes aparecer {
+      from {opacity:0; transform:translateY(10px);}
+      to {opacity:1; transform:translateY(0);}
     }
 
-    .top-bar {
+    .linha {
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
+      align-items: center;
+    }
+
+    .delete {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    .info {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    #msg {
+      text-align: center;
+      font-size: 12px;
+      color: lightgreen;
+      display: none;
     }
   </style>
 </head>
@@ -72,7 +106,8 @@
 <body>
 
 <div class="container">
-  <div class="top-bar">
+
+  <div class="top">
     <span onclick="toggleDark()">🌙 Modo</span>
     <span onclick="limpar()">🧹 Limpar</span>
   </div>
@@ -83,25 +118,21 @@
   <input id="valor" type="number" placeholder="Valor">
 
   <select id="categoria">
-    <option value="Comida">Comida</option>
-    <option value="Transporte">Transporte</option>
-    <option value="Lazer">Lazer</option>
+    <option>Comida</option>
+    <option>Transporte</option>
+    <option>Lazer</option>
   </select>
 
   <button onclick="add()">Adicionar</button>
 
-  <select id="filtro" onchange="render()">
-    <option value="todos">Todos</option>
-    <option value="Comida">Comida</option>
-    <option value="Transporte">Transporte</option>
-    <option value="Lazer">Lazer</option>
-  </select>
+  <div id="msg">✔ Adicionado!</div>
 
   <ul id="lista"></ul>
 
   <h3 id="total"></h3>
 
   <canvas id="grafico"></canvas>
+
 </div>
 
 <script>
@@ -115,54 +146,72 @@ function add() {
   let nome = document.getElementById("nome").value;
   let valor = Number(document.getElementById("valor").value);
   let categoria = document.getElementById("categoria").value;
+  let data = new Date().toLocaleDateString();
 
   if (!nome || !valor) return alert("Preenche tudo");
 
-  dados.push({nome, valor, categoria});
+  dados.push({nome, valor, categoria, data});
+  salvar();
+  render();
+
+  document.getElementById("msg").style.display = "block";
+  setTimeout(() => {
+    document.getElementById("msg").style.display = "none";
+  }, 1000);
+}
+
+function remover(i) {
+  dados.splice(i,1);
   salvar();
   render();
 }
 
 function limpar() {
-  dados = [];
-  salvar();
-  render();
+  if (confirm("Apagar tudo?")) {
+    dados = [];
+    salvar();
+    render();
+  }
 }
 
 function render() {
   let lista = document.getElementById("lista");
   lista.innerHTML = "";
 
-  let filtro = document.getElementById("filtro").value;
-
   let total = 0;
-  let categorias = {Comida:0, Transporte:0, Lazer:0};
+  let cat = {Comida:0, Transporte:0, Lazer:0};
 
   dados.forEach((g,i) => {
-    if (filtro !== "todos" && g.categoria !== filtro) return;
-
     let li = document.createElement("li");
-    li.textContent = g.nome + " €" + g.valor + " ("+g.categoria+")";
+
+    li.innerHTML = `
+      <div class="linha">
+        <strong>${g.nome} €${g.valor}</strong>
+        <button class="delete" onclick="remover(${i})">X</button>
+      </div>
+      <div class="info">${g.categoria} • ${g.data}</div>
+    `;
+
     lista.appendChild(li);
 
     total += g.valor;
-    categorias[g.categoria] += g.valor;
+    cat[g.categoria] += g.valor;
   });
 
   document.getElementById("total").textContent = "Total: €" + total;
 
-  gerarGrafico(categorias);
+  grafico(cat);
 }
 
 let chart;
 
-function gerarGrafico(cat) {
+function grafico(cat) {
   let ctx = document.getElementById("grafico");
 
   if (chart) chart.destroy();
 
   chart = new Chart(ctx, {
-    type: "pie",
+    type: "doughnut",
     data: {
       labels: Object.keys(cat),
       datasets: [{
@@ -173,8 +222,9 @@ function gerarGrafico(cat) {
 }
 
 function toggleDark() {
-  document.body.style.background = document.body.style.background === "black"
-    ? "linear-gradient(to right, #141e30, #243b55)"
+  document.body.style.background =
+    document.body.style.background === "black"
+    ? "linear-gradient(135deg, #1d2b64, #f8cdda)"
     : "black";
 }
 
